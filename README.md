@@ -8,10 +8,10 @@ Result files should be loaded via RequireJS i18n plugin (see https://github.com/
 # OPTIONS
 
 ## inputDir
-Default value: current directory
-Required: no
-Aliases: -i, -inputDir
-
+Default value: current directory  
+Required: no  
+Aliases: -i, -inputDir  
+  
 Absolute or relative path to a directory with *.resx files.
 The tool expects to find one or many files with the same base name:
 * Resources.resx
@@ -20,18 +20,18 @@ The tool expects to find one or many files with the same base name:
 * Resources.de.res
 
 ## outputDir
-Default value: current directory
-Required: no
-Aliases: -o, -oututDir
-
-Absolute or relative path to a directory where result *.js files will be placed.
+Default value: current directory  
+Required: no  
+Aliases: -o, -oututDir  
+  
+Absolute or relative path to a directory where result *.js files will be placed. 
 
 ## casing
-Default value: keep
-Required: no
-Aliases: -c, -case
-
-It specified how resource keys from *.resx will be represented in json.
+Default value: keep  
+Required: no  
+Aliases: -c, -case  
+  
+It specified how resource keys from *.resx will be represented in json.  
 It can be one of the following values:
 * keep - (default) as is (do not modify)
 * camelCase - 'SomeMessage' -> 'someMessage'
@@ -39,8 +39,8 @@ It can be one of the following values:
 
 
 # USAGE EXAMPLES
-Let's consider that we have a VS project in c:\projects\MyServerProject with *.resx files.
-And we want to convert server resources into client resources.
+Let's consider that we have a VS project in 'c:\projects\MyServerProject' with *.resx files.  
+And we want to convert server resources into client resources in 'MyClientProject' folder.
 
 ```
 ResxToJson.exe -i c:\projects\MyServerProject -o .\MyClientProject -c camel
@@ -62,6 +62,6 @@ define({
 and ru/resources.js will look like:
 ```
 define({
-  "fileNotFound": "Τΰιλ νε νΰιδεν",
+  "fileNotFound": "Π¤Π°ΠΉΠ» Π½Πµ Π½Π°ΠΉΠ΄ΠµΠ½"
 });
 ```

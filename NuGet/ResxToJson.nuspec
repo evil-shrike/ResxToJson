@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2010/07/nuspec.xsd">
+	<metadata>
+		<id>ResxToJson</id>
+		<version>1.0</version>
+		<title>Resx to json converter</title>
+		<authors>CROC Inc.</authors>
+		<description>The tool converts Visual Studio resources (*.resx files) into client-side js-files for loading via RequireJS i18n plugin (see https://github.com/requirejs/i18n for details)</description>
+		<language>en-US</language>
+		<projectUrl>https://github.com/CrocInc/ResxToJson</projectUrl>
+		<dependencies>
+		<!--
+			<dependency id="Newtonsoft.Json" version="6.0.3" />
+			-->
+		</dependencies>
+		<tags>RequireJS ResX Json Localization</tags>
+	</metadata>
+</package>

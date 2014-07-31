@@ -1,4 +1,4 @@
-# Overview 
+# OVERVIEW
 
 Resx-files into client js-resource converter  (for RequireJS i18n plugin)
 
@@ -38,6 +38,13 @@ It can be one of the following values:
 * lowerCase - 'SomeMessage' -> 'somemessage'
 
 
+# INSTALL
+
+You can install the tool as NuGet-package [ResxToJson] (https://www.nuget.org/packages/ResxToJson) from nuget.org.
+
+The package contains single exe module ResxToJson.exe in package 'tools' folder.
+
+
 # USAGE EXAMPLES
 Let's consider that we have a VS project in 'c:\projects\MyServerProject' with *.resx files.  
 And we want to convert server resources into client resources in 'MyClientProject' folder.
@@ -63,5 +70,11 @@ and ru/resources.js will look like:
 ```
 define({
   "fileNotFound": "Файл не найден"
+});
+```
+Later we will import js-resources in our client application.
+```
+define(["i18n!nls/resources"], function (resources) {
+  alert(resources.fileNotFound);
 });
 ```

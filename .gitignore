@@ -174,3 +174,4 @@ UpgradeLog*.htm
 FakesAssemblies/
 NuGet/_stage/
 Tests/out_*
+.nuget/NuGet.exe

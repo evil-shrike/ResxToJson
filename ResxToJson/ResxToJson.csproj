@@ -47,7 +47,7 @@
   <ItemGroup>
     <Compile Include="JsonCasing.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="ResourceBundle.cs" />
+    <Compile Include="ResourceFileBundle.cs" />
     <Compile Include="ResxHelper.cs" />
     <Compile Include="ResxToJsonConverter.cs" />
     <Compile Include="ResxToJsonConverterOptions.cs" />

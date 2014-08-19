@@ -2,6 +2,7 @@
 //  Copyright (C) CROC Inc. 2014. All rights reserved.
 // ******************************************************************************
 
+using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
@@ -9,19 +10,17 @@ using System.Linq;
 namespace Croc.DevTools.ResxToJson
 {
 	/// <summary>
-	/// Descriptor for collection of resources in a resx-file and its culture-specific siblings.
+	/// Descriptor for collection of resource files (a resx base file and its culture-specific siblings)
 	/// I.e. all files with the same base name (Messages.resx + Messages.ru.resx + Message.es.resx) form a bundle.
 	/// </summary>
-	public class ResourceBundle
+	public class ResourceFileBundle
 	{
 		private readonly Dictionary<CultureInfo, string> m_cultureFiles;
 
-		private readonly Dictionary<CultureInfo, IDictionary<string, string>> m_resources;
 
-		public ResourceBundle()
+		public ResourceFileBundle()
 		{
 			m_cultureFiles = new Dictionary<CultureInfo, string>();
-			m_resources = new Dictionary<CultureInfo, IDictionary<string, string>>();
 		}
 
 		/// <summary>
@@ -55,6 +54,26 @@ namespace Croc.DevTools.ResxToJson
 		{
 			get { return m_cultureFiles.Keys.ToList(); }
 		}
+	}
+
+	/// <summary>
+	/// Resource bundle created from a set of resx files (<see cref="ResourceFileBundle"/>).
+	/// Hold localazed values for different cultures and for base culture.
+	/// </summary>
+	public class ResourceBundle
+	{
+		private readonly Dictionary<CultureInfo, IDictionary<string, string>> m_resources;
+
+		public ResourceBundle(string baseName)
+		{
+			BaseName = baseName;
+			m_resources = new Dictionary<CultureInfo, IDictionary<string, string>>();
+		}
+
+		/// <summary>
+		/// Base name of the bundle (usially it's base name of resx file it's created from)
+		/// </summary>
+		public string BaseName { get; private set; }
 
 		/// <summary>
 		/// Get resource values (collection of key/value pairs) for the specific culture or base resources (if culture is null).
@@ -83,7 +102,35 @@ namespace Croc.DevTools.ResxToJson
 			{
 				culture = CultureInfo.InvariantCulture;
 			}
-			m_resources[culture] = values;
+			IDictionary<string, string> valuesCur;
+			if (m_resources.TryGetValue(culture, out valuesCur))
+			{
+				foreach (var pair in values)
+				{
+					valuesCur[pair.Key] = pair.Value;
+				}
+			}
+			else
+			{
+				m_resources[culture] = values;
+			}
+		}
+
+		/// <summary>
+		/// All culures in the bundle (not counting base culture).
+		/// </summary>
+		public IList<CultureInfo> Cultures
+		{
+			get { return m_resources.Keys.ToList(); }
+		}
+
+		public void MergeWith(ResourceBundle other)
+		{
+			// NOTE: Cultures includes InvarianCulture for root resources as well
+			foreach (var culture in other.Cultures)
+			{
+				AddResources(culture, other.GetValues(culture));
+			}
 		}
 	}
 }

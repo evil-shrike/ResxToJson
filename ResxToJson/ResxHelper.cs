@@ -21,78 +21,107 @@ namespace Croc.DevTools.ResxToJson
 			return s_cultures.FirstOrDefault(ci => ci.Name == name);
 		}
 
-		public static IDictionary<string, ResourceBundle> GetResources(string directory)
+		/// <summary>
+		/// Get resources from set of resx files. 
+		/// Resources are groupped in bundles for each set of resx-files with same base name (like messages.resx, messages.en.resx, message.ru.resx)
+		/// </summary>
+		/// <param name="inputFiles"></param>
+		/// <returns></returns>
+		public static IDictionary<string, ResourceBundle> GetResources(IList<string> inputFiles)
 		{
-			var bundles = new Dictionary<string, ResourceBundle>();
+			var fileBundles = new Dictionary<string, ResourceFileBundle>();
 
-			if (Directory.Exists(directory))
+			foreach (var filePath in inputFiles)
 			{
-				var resourceFiles = Directory.GetFiles(directory, "*.resx");
+				string fileName = Path.GetFileName(filePath);
+				string fileNameWithoutExt = Path.GetFileNameWithoutExtension(fileName);
+				bool isBaseFile;
+				int idx = fileNameWithoutExt.IndexOf(".");
 				// All files with the same base name form a bundle
-				foreach (var filePath in resourceFiles)
+				string baseName = fileNameWithoutExt;
+				CultureInfo culture = null;
+				ResourceFileBundle bundle;
+				if (idx == -1)
 				{
-					string fileName = Path.GetFileName(filePath);
-					string fileNameWithoutExt = Path.GetFileNameWithoutExtension(fileName);
-					bool isBaseFile;
-					int idx = fileNameWithoutExt.IndexOf(".");
-					string baseName = fileNameWithoutExt;
-					CultureInfo culture = null;
-					ResourceBundle bundle;
-					if (idx == -1)
+					isBaseFile = true;
+				}
+				else
+				{
+					// file name contains "." - it can culture name or something else
+					string suffix = fileNameWithoutExt.Substring(idx + 1);
+					culture = getCulture(suffix);
+					if (culture != null)
+					{
+						// the file is a culture-specific resource file
+						isBaseFile = false;
+						baseName = fileNameWithoutExt.Substring(0, idx);
+					}
+					else
 					{
 						isBaseFile = true;
 					}
-					else
-					{
-						// file name contains "." - it can culture name or something else
-						string suffix = fileNameWithoutExt.Substring(idx + 1);
-						culture = getCulture(suffix);
-						if (culture != null)
-						{
-							// the file is a culture-specific resource file
-							isBaseFile = false;
-							baseName = fileNameWithoutExt.Substring(0, idx);
-						}
-						else
-						{
-							isBaseFile = true;
-						}
-					}
-					if (!bundles.TryGetValue(baseName, out bundle))
-					{
-						bundle = new ResourceBundle();
-						bundles[baseName] = bundle;
-					}
-					if (isBaseFile)
-					{
-						bundle.BaseName = baseName;
-						bundle.BaseFile = filePath;
-					}
-					else
-					{
-						bundle.AddCultureFile(culture, filePath);
-					}
+				}
+				if (!fileBundles.TryGetValue(baseName, out bundle))
+				{
+					bundle = new ResourceFileBundle();
+					fileBundles[baseName] = bundle;
+				}
+				if (isBaseFile)
+				{
+					bundle.BaseName = baseName;
+					bundle.BaseFile = filePath;
+				}
+				else
+				{
+					bundle.AddCultureFile(culture, filePath);
 				}
 			}
-			foreach (ResourceBundle bundle in bundles.Values)
+
+			var bundles = new Dictionary<string, ResourceBundle>();
+			// read values from resx files grouped in bundles
+			foreach (ResourceFileBundle fileBundle in fileBundles.Values)
 			{
-				if (String.IsNullOrEmpty(bundle.BaseFile))
+				var bundle = new ResourceBundle(fileBundle.BaseName);
+				if (String.IsNullOrEmpty(fileBundle.BaseFile))
 				{
-					throw new Exception("Base resource file was found:" + bundle.BaseName);
+					throw new Exception("Base resource file was not found:" + fileBundle.BaseName);
 				}
-				bundle.AddResources(null, getKeyValuePairsFromResxFile(bundle.BaseFile));
-				foreach (KeyValuePair<CultureInfo, string> pair in bundle.CultureFiles)
+				bundle.AddResources(null, getKeyValuePairsFromResxFile(fileBundle.BaseFile));
+				foreach (KeyValuePair<CultureInfo, string> pair in fileBundle.CultureFiles)
 				{
 					var values = getKeyValuePairsFromResxFile(pair.Value);
 					bundle.AddResources(pair.Key, values);
 				}
+				bundles[fileBundle.BaseName] = bundle;
 			}
 			return bundles;
+		}
+
+		/// <summary>
+		/// Get resources from resx files found in specified folders.
+		/// Resources with groupped in bundles for each set of resx-files with same base name (like messages.resx, messages.en.resx, message.ru.resx)
+		/// </summary>
+		public static IDictionary<string, ResourceBundle> GetResources(ICollection<string> directories, bool recursive)
+		{
+			var files = new List<string>();
+			foreach (string directory in directories)
+			{
+				if (!Directory.Exists(directory))
+				{
+					continue;
+				}
+				string[] resourceFiles = Directory.GetFiles(directory, "*.resx",
+					recursive ? SearchOption.AllDirectories : SearchOption.TopDirectoryOnly);
+				files .AddRange(resourceFiles);
+			}
+
+			return GetResources(files);
 		}
 
 		private static Dictionary<string, string> getKeyValuePairsFromResxFile(string filePath)
 		{
 			var resourceFileDict = new Dictionary<string, string>();
+			// NOTE: here we're using ResXResourceReader from System.Windows.Forms 
 			var resourceReader = new ResXResourceReader(filePath);
 			try
 			{

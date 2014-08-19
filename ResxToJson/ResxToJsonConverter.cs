@@ -4,14 +4,49 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Globalization;
 using System.IO;
+using System.Text;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
 namespace Croc.DevTools.ResxToJson
 {
-	public class ResxToJsonConverter 
+	public class ConverterResult
+	{
+		private readonly List<LogItem> m_log = new List<LogItem>();
+		public void AddMsg(Severity severity , string msg, params object[] args)
+		{
+			m_log.Add(new LogItem(severity, String.Format(msg, args)));
+		}
+
+		public List<LogItem> Log
+		{
+			get { return m_log; }
+		}
+	}
+
+	public class LogItem
+	{
+		public LogItem(Severity severity, string message)
+		{
+			Severity = severity;
+			Message = message;
+		}
+
+		public Severity Severity { get; private set; }
+		public String Message { get; private set; }
+	}
+	public enum Severity
+	{
+		Trace,
+		Info,
+		Warning,
+		Error
+	}
+
+	public class ResxToJsonConverter
 	{
 		class JsonResources
 		{
@@ -25,40 +60,111 @@ namespace Croc.DevTools.ResxToJson
 			public IDictionary<string, JObject> LocalizedResources { get; private set; }
 		}
 
-		public static void Convert(ResxToJsonConverterOptions options)
+		public static ConverterResult Convert(ResxToJsonConverterOptions options)
 		{
-			IDictionary<string, ResourceBundle> bundles = ResxHelper.GetResources(options.InputFolder);
-			/*if (options.SingleOutputFile)
+			var result = new ConverterResult();
+
+			IDictionary<string, ResourceBundle> bundles = null;
+			if (options.InputFiles.Count > 0)
 			{
-				
-			}*/
-
-			foreach (ResourceBundle bundle in bundles.Values)
+				bundles = ResxHelper.GetResources(options.InputFiles);
+			}
+			if (options.InputFolders.Count > 0)
 			{
-				JsonResources result = generateJsonResources(bundle, options);
-
-				string baseFileName = bundle.BaseName.ToLowerInvariant() + ".js";
-				string outputPath = Path.Combine(options.OutputFolder, baseFileName);
-				string jsonText = stringifyJson(result.BaseResources, options);
-				writeOutput(outputPath, jsonText);				
-
-				if (result.LocalizedResources.Count > 0)
+				var bundles2 = ResxHelper.GetResources(options.InputFolders, options.Recursive);
+				if (bundles == null )
 				{
-					foreach (KeyValuePair<string, JObject> pair in result.LocalizedResources)
+					bundles = bundles2;
+				}
+				else
+				{
+					// join two bundles collection
+					foreach (var pair in bundles2)
 					{
-						string dirPath = Path.Combine(options.OutputFolder, pair.Key);
-						outputPath = Path.Combine(dirPath, baseFileName);
-						jsonText = stringifyJson(pair.Value, options);
-						writeOutput(outputPath, jsonText);						
+						bundles[pair.Key] = pair.Value;
 					}
 				}
 			}
+
+			if (bundles == null || bundles.Count == 0)
+			{
+				result.AddMsg(Severity.Warning, "No resx files were found");
+				return result;
+			}
+			result.AddMsg(Severity.Trace, "Found {0} resx bundles", bundles.Count);
+			if (bundles.Count > 1 && !String.IsNullOrEmpty(options.OutputFile))
+			{
+				// join multiple resx resources into a single js-bundle
+				var bundleMerge = new ResourceBundle(Path.GetFileNameWithoutExtension(options.OutputFile));
+				foreach (var pair in bundles)
+				{
+					bundleMerge.MergeWith(pair.Value);
+				}
+				result.AddMsg(Severity.Trace, "As 'outputFile' option was specified all bundles were merged into single bundle '{0}'", bundleMerge.BaseName);
+				bundles = new Dictionary<string, ResourceBundle> {{bundleMerge.BaseName, bundleMerge}};
+			}
+
+			foreach (ResourceBundle bundle in bundles.Values)
+			{
+				JsonResources jsonResources = generateJsonResources(bundle, options);
+				string baseFileName;
+				string baseDir;
+				if (!string.IsNullOrEmpty(options.OutputFile))
+				{
+					baseFileName = Path.GetFileName(options.OutputFile);
+					baseDir = Path.GetDirectoryName(options.OutputFile);
+				}
+				else
+				{
+					baseFileName = bundle.BaseName.ToLowerInvariant() + ".js";
+					baseDir = options.OutputFolder;
+				}
+				if (string.IsNullOrEmpty(baseDir))
+				{
+					baseDir = Environment.CurrentDirectory;
+				}
+
+				result.AddMsg(Severity.Trace, "Processing '{0}' bundle (contains {1} resx files)", bundle.BaseName, bundle.Cultures.Count);
+				string outputPath = Path.Combine(baseDir, baseFileName);
+				string jsonText = stringifyJson(jsonResources.BaseResources, options);
+				writeOutput(outputPath, jsonText, options, result);
+
+				if (jsonResources.LocalizedResources.Count > 0)
+				{
+					foreach (KeyValuePair<string, JObject> pair in jsonResources.LocalizedResources)
+					{
+						string dirPath = Path.Combine(baseDir, pair.Key);
+						outputPath = Path.Combine(dirPath, baseFileName);
+						jsonText = stringifyJson(pair.Value, options);
+						writeOutput(outputPath, jsonText, options, result);
+					}
+				}
+			}
+
+			return result;
 		}
 
-		private static void writeOutput(string outputPath, string jsonText)
+		private static void writeOutput(string outputPath, string jsonText, ResxToJsonConverterOptions options, ConverterResult result)
 		{
 			Directory.CreateDirectory(Path.GetDirectoryName(outputPath));
-			File.WriteAllText(outputPath, jsonText);
+			if (File.Exists(outputPath))
+			{
+				var attrs = File.GetAttributes(outputPath);
+				if ((attrs & FileAttributes.ReadOnly) == FileAttributes.ReadOnly)
+				{
+					if (options.Overwrite == OverwriteModes.Skip)
+					{
+						result.AddMsg(Severity.Error, "Cannot overwrite {0} file, skipping", outputPath);
+						return;
+					}
+					// remove read-only attribute
+					attrs = ~FileAttributes.ReadOnly & attrs;
+					File.SetAttributes(outputPath, attrs);
+				}
+				// if existing file isn't readonly we just overwrite it
+			}
+			File.WriteAllText(outputPath, jsonText, Encoding.UTF8);
+			result.AddMsg(Severity.Info, "Created {0} file", outputPath);
 		}
 
 		static string stringifyJson(JObject json, ResxToJsonConverterOptions options)
@@ -77,6 +183,8 @@ namespace Croc.DevTools.ResxToJson
 			jRoot["root"] = jBaseValues;
 			foreach (CultureInfo culture in bundle.Cultures)
 			{
+				if (culture.Equals(CultureInfo.InvariantCulture))
+					continue;
 				jRoot[culture.Name] = true;
 			}
 			result.BaseResources = jRoot;
@@ -84,6 +192,8 @@ namespace Croc.DevTools.ResxToJson
 			// culture specific resources
 			foreach (CultureInfo culture in bundle.Cultures)
 			{
+				if (culture.Equals(CultureInfo.InvariantCulture))
+					continue;
 				IDictionary<string, string> values = bundle.GetValues(culture);
 				JObject jCultureValues = convertValues(values, options);
 				result.LocalizedResources[culture.Name] = jCultureValues;

@@ -15,18 +15,19 @@ namespace Croc.DevTools.ResxToJson
 			for (int i = 0; i < args.Length; i++)
 			{
 				string key = args[i];
-				if (key == "-i" || key == "-inputDir")
+				if (key == "-i" || key == "-input")
 				{
 					if (args.Length == i + 1)
 					{
-						Console.WriteLine("ERROR: Value for option 'inputDir' is missing");
+						Console.WriteLine("ERROR: Value for option 'input' is missing");
 						Environment.Exit(-1);
 					}
-					options.InputFolder = args[i + 1];
+					options.Inputs.Add(args[i + 1]);
 					i++;
 					continue;
 				}
-				if (key == "-o" || key == "-outputDir")
+
+				if (key == "-dir" || key == "-outputDir")
 				{
 					if (args.Length == i + 1)
 					{
@@ -37,6 +38,19 @@ namespace Croc.DevTools.ResxToJson
 					i++;
 					continue;
 				}
+
+				if (key == "-file" || key == "-outputFile")
+				{
+					if (args.Length == i + 1)
+					{
+						Console.WriteLine("ERROR: Value for option 'outputFile' is missing");
+						Environment.Exit(-2);
+					}
+					options.OutputFile = args[i + 1];
+					i++;
+					continue;
+				}
+
 				if (key == "-c" || key == "-case")
 				{
 					if (args.Length == i + 1)
@@ -52,6 +66,16 @@ namespace Croc.DevTools.ResxToJson
 					i++;
 					continue;
 				}
+				if (key == "-f" || key == "-force")
+				{
+					options.Overwrite = OverwriteModes.Force;
+					continue;
+				}
+				if (key == "-r" || key == "-recursively")
+				{
+					options.Recursive = true;
+					continue;
+				}
 			}
 			return options;
 		}
@@ -64,42 +88,101 @@ namespace Croc.DevTools.ResxToJson
 			}
 			var options = getOptions(args);
 			checkOptions(options);
-			ResxToJsonConverter.Convert(options);
+			
+			ConverterResult result = ResxToJsonConverter.Convert(options);
+			foreach (var item in result.Log)
+			{
+				ConsoleColor color;
+				switch (item.Severity)
+				{
+					case Severity.Trace:
+						color = ConsoleColor.DarkGray;
+						break;
+					case Severity.Info:
+						color = ConsoleColor.White;
+						break;
+					case Severity.Warning:
+						color = ConsoleColor.Yellow;
+						break;
+					case Severity.Error:
+						color = ConsoleColor.DarkRed;
+						break;
+					default:
+						throw new ArgumentOutOfRangeException();
+				}
+				var backupColor = Console.ForegroundColor;
+				Console.ForegroundColor = color;
+				Console.WriteLine(item.Message);
+				Console.ForegroundColor = backupColor;
+			}
+			
 		}
 
 		static void checkOptions(ResxToJsonConverterOptions options)
 		{
-			if (String.IsNullOrEmpty(options.InputFolder))
+			if (options.Inputs.Count > 0)
 			{
-				options.InputFolder = Environment.CurrentDirectory;
+				foreach (string input in options.Inputs)
+				{
+					string path = input;
+					if (!Path.IsPathRooted(input))
+					{
+						path = Path.Combine(Environment.CurrentDirectory, input);
+					}
+
+					if (Directory.Exists(path))
+					{
+						options.InputFolders.Add(path);
+					}
+					else if (File.Exists(path))
+					{
+						options.InputFiles.Add(path);
+					}
+					else
+					{
+						var c = Console.ForegroundColor;
+						Console.ForegroundColor = ConsoleColor.Red;
+						Console.WriteLine("ERROR: input path '{0}' doesn't relate to a file or a directory", path);
+						Console.ForegroundColor = c;
+						Environment.Exit(-4);
+					}
+				}
 			}
 			else
 			{
-				if (!Path.IsPathRooted(options.InputFolder))
-				{
-					options.InputFolder = Path.Combine(Environment.CurrentDirectory, options.InputFolder);
-				}
-				if (!Directory.Exists(options.InputFolder))
-				{
-					Console.WriteLine("ERROR: Directory path '{0}' specified as input doesn't exist", options.InputFolder);
-					Environment.Exit(-4);
-				}
+				options.InputFolders.Add(Environment.CurrentDirectory);
 			}
-			if (String.IsNullOrEmpty(options.OutputFolder))
+
+			if (String.IsNullOrEmpty(options.OutputFolder) && String.IsNullOrEmpty(options.OutputFile))
 			{
 				options.OutputFolder = Environment.CurrentDirectory;
 			}
-
 		}
+
 		static void printHelp()
 		{
 			Console.WriteLine(
-@"(c) CROC Inc. 2014
-ResxToJson - *.resx to json converter for using with RequireJS i18n plugin (see https://github.com/requirejs/i18n)
+@"ResxToJson (c) CROC Inc. 2014
+A resx-resources to json converter for using with RequireJS i18n plugin (see https://github.com/requirejs/i18n).
 USAGE:
-  -inputDir or -i  - path to directory with *.resx files
-  -outputDir or -o - path to output directory (where result js files will be placed)
-  -case or -c      - resource keys formating options: keep (default), camel ('SomeMsg' -> 'someMsg'), lower ('SomeMsg' -> 'somemsg')
+  -input or -i         - path to directory with *.resx files or to separate file 
+                         HINT: there can be several such options specifed at once
+  -outputDir or -dir   - path to output directory (where result js files will be placed)
+  -outputFile or -file - path to output file (instead of outputDir)
+  -case or -c          - resource keys formating options: 
+                           keep (default) - do not change names
+                           camel - 'SomeMsg' -> 'someMsg'
+                           lower - 'SomeMsg' -> 'somemsg'
+  -force or -f         - overwrite existing read-only files (by default read-only files will not be overwritten)
+  -recursive or -r     - search files in input dir recursively
+
+
+EXAMPLES:
+ResxToJson.exe -i .\Server -dir c:\src\MyPrj -c camel -force
+Processes all *.resx in folder 'Server' (relative to current dir) and create js-files in 'c:\src\MyPrj' folder (one js-file for each resx-file)
+
+ResxToJson.exe -i Messages.resx -i Messages.nl.resx -i Messages.de.resx -file .\client\resources.js
+Process files Messages.resx, Messages.nl.resx, Messages.de.resx and create js-files for each resx with base name 'resources'
 ");
 			Environment.Exit(0);
 		}

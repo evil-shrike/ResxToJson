@@ -1,32 +1,45 @@
 # OVERVIEW
 
-Resx-files into client js-resource converter  (for RequireJS i18n plugin)
-
-The tool converts Visual Studio resources (*.resx files) into client-side js-files.
+This tool converters .NET resources (*.resx-files) into client js-resource.
 Result files should be loaded via RequireJS i18n plugin (see https://github.com/requirejs/i18n for details).
 
 # OPTIONS
 
-## inputDir
+## input
 Default value: current directory  
 Required: no  
-Aliases: -i, -inputDir  
+Aliases: -i, -input
   
-Absolute or relative path to a directory with *.resx files.
+Absolute or relative path to a directory with *.resx files or to a resx file.
+There can be several such option specified at once.
 The tool expects to find one or many files with the same base name:
 * Resources.resx
 * Resources.ru.resx
 * Resources.nl.res
 * Resources.de.res
 
+
 ## outputDir
 Default value: current directory  
 Required: no  
-Aliases: -o, -oututDir  
+Aliases: -outputDir, -dir  
   
 Absolute or relative path to a directory where result *.js files will be placed. 
+A js file is generated for each input file.
+This is default option if none of `inputDir` or `inputFile` options specified.
+Cannot be used with `outputFile` option.
+
+## outputFile
+Required: no  
+Aliases: -outputFile, -file
+
+Absolute or relative path to a result js file. If several inputs specified (via `inputDir` or `inputFile` options)
+then resources will be merged into the single js file. 
+Cannot be used with `outputDir` option.
+
 
 ## casing
+Value: keep, camelCase, lowerCase
 Default value: keep  
 Required: no  
 Aliases: -c, -case  
@@ -36,6 +49,24 @@ It can be one of the following values:
 * keep - (default) as is (do not modify)
 * camelCase - 'SomeMessage' -> 'someMessage'
 * lowerCase - 'SomeMessage' -> 'somemessage'
+
+
+## recursive
+Value: true/false
+Default value: false
+Required: no
+Aliases: -f, -recursively
+
+Specifies that searching in `inputDir` will be recirsive.
+
+
+## force
+Value: none, it's flag
+Default value: not specified
+Required: no
+Aliases: -f, -force
+
+If specified then read-only files (if any) will be overwritten.
 
 
 # INSTALL

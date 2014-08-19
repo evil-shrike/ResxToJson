@@ -84,12 +84,13 @@ And we want to convert server resources into client resources in 'MyClientProjec
 ResxToJson.exe -i c:\projects\MyServerProject -o .\MyClientProject -c camel
 ```
 
-If MyServerProject contains two files Resources.resx and Resources.ru.resx then MyClientProject will contain:
+If MyServerProject contains two files Resources.resx and Resources.ru.resx then MyClientProject will contain: 
+
 * resources.js - default resources from Resources.resx
 * ru/resource.js - resources from Resources.ru.resx
 
-resources.js will look like:
-```
+`resources.js` will look like:
+```js
 define({
   "root": {
     "fileNotFound": "File cannot be found",
@@ -97,14 +98,16 @@ define({
   "ru": true
 });
 ```
-and ru/resources.js will look like:
-```
+
+and `ru/resources.js` will look like:
+```js
 define({
   "fileNotFound": "Файл не найден"
 });
 ```
-Later we will import js-resources in our client application.
-```
+
+Later we will import js-resources in our client application:
+```js
 define(["i18n!nls/resources"], function (resources) {
   alert(resources.fileNotFound);
 });

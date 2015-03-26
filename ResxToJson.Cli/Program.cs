@@ -3,6 +3,7 @@
 // ******************************************************************************
 
 using System;
+using System.ComponentModel.Design.Serialization;
 using System.IO;
 
 namespace Croc.DevTools.ResxToJson
@@ -15,7 +16,8 @@ namespace Croc.DevTools.ResxToJson
             InvalidOutputArgument = -2,
             CaseArgumentMissing = -3,
             InvalidInputPath = -4,
-            OutputFormatArgumentMissing = -5
+            OutputFormatArgumentMissing = -5,
+	        FallbackArgumentMissing = -6
 	    }
 
 	    static void CrashAndBurn(ExitCode code, string crashMessage, params object[] args)
@@ -86,6 +88,17 @@ namespace Croc.DevTools.ResxToJson
 					{
 						options.OutputFormat = format;
 					}
+                    i++;
+                    continue;
+                }
+
+                if (key == "-fallback" || key == "-fallbackCulture")
+                {
+                    if (args.Length == i + 1)
+                    {
+                        CrashAndBurn(ExitCode.FallbackArgumentMissing, "Value for option 'fallbackCulture' is missing");
+                    }
+                    options.FallbackCulture = args[i + 1];
                     i++;
                     continue;
                 }
@@ -199,16 +212,22 @@ namespace Croc.DevTools.ResxToJson
 @"ResxToJson (c) CROC Inc. 2014
 A resx-resources to json converter for using with RequireJS i18n plugin (see https://github.com/requirejs/i18n).
 USAGE:
-  -input or -i         - path to directory with *.resx files or to separate file 
-                         HINT: there can be several such options specifed at once
-  -outputDir or -dir   - path to output directory (where result js files will be placed)
-  -outputFile or -file - path to output file (instead of outputDir)
-  -case or -c          - resource keys formating options: 
-                           keep (default) - do not change names
-                           camel - 'SomeMsg' -> 'someMsg'
-                           lower - 'SomeMsg' -> 'somemsg'
-  -force or -f         - overwrite existing read-only files (by default read-only files will not be overwritten)
-  -recursive or -r     - search files in input dir recursively
+  -input or -i              - path to directory with *.resx files or to separate file 
+                              HINT: there can be several such options specifed at once
+  -outputDir or -dir        - path to output directory (where result js files will be placed)
+  -outputFile or -file      - path to output file (instead of outputDir)
+  -outputFormat or -format  - output format selection:
+                                RequireJs (default) -> output will be AMD modules suitable for use with requireJs i18n
+                                i18next             -> output will be JSON dictionary files that can be used with i18next
+  -fallback                 - When using i18next the 'root' translations get used as the fallback culture, which go in 
+                              their own subdirectory (essentially forming their own culture). By default this will be 
+                              'dev', however you should probably specify something more appropriate like 'en' or 'fr'
+  -case or -c               - resource keys formating options: 
+                                keep (default) - do not change names
+                                camel - 'SomeMsg' -> 'someMsg'
+                                lower - 'SomeMsg' -> 'somemsg'
+  -force or -f              - overwrite existing read-only files (by default read-only files will not be overwritten)
+  -recursive or -r          - search files in input dir recursively
 
 
 EXAMPLES:
@@ -217,6 +236,9 @@ Processes all *.resx in folder 'Server' (relative to current dir) and create js-
 
 ResxToJson.exe -i Messages.resx -i Messages.nl.resx -i Messages.de.resx -file .\client\resources.js
 Process files Messages.resx, Messages.nl.resx, Messages.de.resx and create js-files for each resx with base name 'resources'
+
+ResxToJson.exe -i .\Server -dir c:\src\MyPrj\content\locales -format i18next -fallback en
+Processes all *.resx in folder 'Server' and creates json dictionary files in the 'c:\src\MyPrj\content\locales' folder (one for each resx file)
 ");
 			Environment.Exit(0);
 		}

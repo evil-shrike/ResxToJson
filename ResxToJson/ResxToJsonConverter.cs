@@ -124,8 +124,11 @@ namespace Croc.DevTools.ResxToJson
 					baseDir = Environment.CurrentDirectory;
 				}
 
-				result.AddMsg(Severity.Trace, "Processing '{0}' bundle (contains {1} resx files)", bundle.BaseName, bundle.Cultures.Count);
-				string outputPath = Path.Combine(baseDir, baseFileName);
+				result.AddMsg(Severity.Trace, "Processing '{0}' bundle (contains {1} resx files)", bundle.BaseName, bundle.Cultures.Count);                
+                string dirPath = options.OutputFormat == OutputFormat.i18next 
+                    ? Path.Combine(baseDir, options.FallbackCulture)
+                    : baseDir;
+                string outputPath = Path.Combine(dirPath, baseFileName);
 				string jsonText = stringifyJson(jsonResources.BaseResources, options);
 				writeOutput(outputPath, jsonText, options, result);
 
@@ -133,7 +136,7 @@ namespace Croc.DevTools.ResxToJson
 				{
 					foreach (KeyValuePair<string, JObject> pair in jsonResources.LocalizedResources)
 					{
-						string dirPath = Path.Combine(baseDir, pair.Key);
+						dirPath = Path.Combine(baseDir, pair.Key);
 						outputPath = Path.Combine(dirPath, baseFileName);
 						jsonText = stringifyJson(pair.Value, options);
 						writeOutput(outputPath, jsonText, options, result);

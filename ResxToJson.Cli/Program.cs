@@ -9,6 +9,31 @@ namespace Croc.DevTools.ResxToJson
 {
 	class Program
 	{
+	    enum ExitCode
+	    {
+	        InputArgumentMissing = -1,
+            InvalidOutputArgument = -2,
+            CaseArgumentMissing = -3,
+            InvalidInputPath = -4,
+            OutputFormatArgumentMissing = -5
+	    }
+
+	    static void CrashAndBurn(ExitCode code, string crashMessage, params object[] args)
+	    {
+            // Preserve the foreground color
+            var c = Console.ForegroundColor;
+
+            // Write out our error message in bright red text
+            Console.ForegroundColor = ConsoleColor.Red;
+            Console.WriteLine("ERROR: " + crashMessage, args);
+
+            // Restore the foreground color
+            Console.ForegroundColor = c;
+
+            // Die!
+            Environment.Exit((int)code);
+        }
+
 		static ResxToJsonConverterOptions getOptions(string[] args)
 		{
 			var options = new ResxToJsonConverterOptions();
@@ -19,8 +44,7 @@ namespace Croc.DevTools.ResxToJson
 				{
 					if (args.Length == i + 1)
 					{
-						Console.WriteLine("ERROR: Value for option 'input' is missing");
-						Environment.Exit(-1);
+                        CrashAndBurn(ExitCode.InputArgumentMissing, "Value for option 'input' is missing");
 					}
 					options.Inputs.Add(args[i + 1]);
 					i++;
@@ -31,8 +55,7 @@ namespace Croc.DevTools.ResxToJson
 				{
 					if (args.Length == i + 1)
 					{
-						Console.WriteLine("ERROR: Value for option 'outputDir' is missing");
-						Environment.Exit(-2);
+					    CrashAndBurn(ExitCode.InvalidOutputArgument, "Value for option 'outputDir' is missing");
 					}
 					options.OutputFolder = args[i + 1];
 					i++;
@@ -43,20 +66,35 @@ namespace Croc.DevTools.ResxToJson
 				{
 					if (args.Length == i + 1)
 					{
+                        CrashAndBurn(ExitCode.InvalidOutputArgument, "Value for option 'outputFile' is missing");
 						Console.WriteLine("ERROR: Value for option 'outputFile' is missing");
 						Environment.Exit(-2);
 					}
 					options.OutputFile = args[i + 1];
 					i++;
 					continue;
-				}
+                }
+
+                if (key == "-format" || key == "-outputFormat")
+                {
+                    if (args.Length == i + 1)
+                    {
+                        CrashAndBurn(ExitCode.OutputFormatArgumentMissing, "Value for option 'outputFormat' is missing");
+                    }
+					OutputFormat format;
+					if (Enum.TryParse(args[i + 1], true, out format))
+					{
+						options.OutputFormat = format;
+					}
+                    i++;
+                    continue;
+                }
 
 				if (key == "-c" || key == "-case")
 				{
 					if (args.Length == i + 1)
 					{
-						Console.WriteLine("ERROR: Value for option 'case' is missing");
-						Environment.Exit(-3);
+                        CrashAndBurn(ExitCode.CaseArgumentMissing, "Value for option 'case' is missing");
 					}
 					JsonCasing casing;
 					if (Enum.TryParse(args[i + 1], true, out casing))
@@ -140,11 +178,7 @@ namespace Croc.DevTools.ResxToJson
 					}
 					else
 					{
-						var c = Console.ForegroundColor;
-						Console.ForegroundColor = ConsoleColor.Red;
-						Console.WriteLine("ERROR: input path '{0}' doesn't relate to a file or a directory", path);
-						Console.ForegroundColor = c;
-						Environment.Exit(-4);
+                        CrashAndBurn(ExitCode.InvalidInputPath, "input path '{0}' doesn't relate to a file or a directory", path);
 					}
 				}
 			}

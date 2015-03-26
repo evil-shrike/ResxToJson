@@ -17,6 +17,7 @@ namespace Croc.DevTools.ResxToJson
 			Inputs = new List<string>();
 			InputFiles = new List<string>();
 			InputFolders  = new List<string>();
+            OutputFormat = OutputFormat.RequireJs;
 		}
 
 		/// <summary>
@@ -46,6 +47,11 @@ namespace Croc.DevTools.ResxToJson
 		/// </summary>
 		public string OutputFile { get; set; }
 
+        /// <summary>
+        /// The output format.
+        /// </summary>
+        public OutputFormat OutputFormat { get; set; }
+
 		/// <summary>
 		/// Options for formating resources keys names.
 		/// </summary>
@@ -63,4 +69,10 @@ namespace Croc.DevTools.ResxToJson
 		Ask,
 		Force
 	}
+
+    public enum OutputFormat
+    {
+        RequireJs,
+        i18next
+    }
 }

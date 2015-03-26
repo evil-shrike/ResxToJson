@@ -116,7 +116,7 @@ namespace Croc.DevTools.ResxToJson
 				}
 				else
 				{
-					baseFileName = bundle.BaseName.ToLowerInvariant() + ".js";
+					baseFileName = bundle.BaseName.ToLowerInvariant() + GetOutputFileExtension(options.OutputFormat);
 					baseDir = options.OutputFolder;
 				}
 				if (string.IsNullOrEmpty(baseDir))
@@ -144,7 +144,18 @@ namespace Croc.DevTools.ResxToJson
 			return result;
 		}
 
-		private static void writeOutput(string outputPath, string jsonText, ResxToJsonConverterOptions options, ConverterResult result)
+        private static string GetOutputFileExtension(OutputFormat format)
+	    {
+            switch (format)
+            {
+                case OutputFormat.RequireJs:
+                    return ".js";
+                default:
+                    return ".json";
+            }
+	    }
+
+	    private static void writeOutput(string outputPath, string jsonText, ResxToJsonConverterOptions options, ConverterResult result)
 		{
 			Directory.CreateDirectory(Path.GetDirectoryName(outputPath));
 			if (File.Exists(outputPath))
@@ -170,7 +181,13 @@ namespace Croc.DevTools.ResxToJson
 		static string stringifyJson(JObject json, ResxToJsonConverterOptions options)
 		{
 			string text = json.ToString(Formatting.Indented);
-			return "define(" + text + ");";
+		    switch (options.OutputFormat)
+		    {
+		        case OutputFormat.RequireJs:
+                    return "define(" + text + ");";
+                default:
+		            return text;
+		    }
 		}
 
 		private static JsonResources generateJsonResources(ResourceBundle bundle, ResxToJsonConverterOptions options)
@@ -179,15 +196,29 @@ namespace Croc.DevTools.ResxToJson
 			// root resoruce
 			IDictionary<string, string> baseValues = bundle.GetValues(null);
 			JObject jBaseValues = convertValues(baseValues, options);
-			var jRoot = new JObject();
-			jRoot["root"] = jBaseValues;
-			foreach (CultureInfo culture in bundle.Cultures)
-			{
-				if (culture.Equals(CultureInfo.InvariantCulture))
-					continue;
-				jRoot[culture.Name] = true;
-			}
-			result.BaseResources = jRoot;
+		    switch (options.OutputFormat)
+		    {
+		        case OutputFormat.RequireJs:
+                    // When dealing with require.js i18n the root resource contains a "root" subnode that contains all 
+                    // of the base translations and then a bunch of nodes like the following for each supported culture:
+                    //   "en-US" : true
+                    //   "fr" : true
+                    //   ...
+                    var jRoot = new JObject();
+                    jRoot["root"] = jBaseValues;
+                    foreach (CultureInfo culture in bundle.Cultures)
+                    {
+                        if (culture.Equals(CultureInfo.InvariantCulture))
+                            continue;
+                        jRoot[culture.Name] = true;
+                    }
+                    result.BaseResources = jRoot;
+		            break;
+                default:
+                    // In the simplest case our output format is plain vanilla json (just a kvp dictionary)
+		            result.BaseResources = jBaseValues;
+		            break;
+		    }
 
 			// culture specific resources
 			foreach (CultureInfo culture in bundle.Cultures)

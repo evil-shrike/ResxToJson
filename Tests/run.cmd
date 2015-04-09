@@ -11,3 +11,7 @@ echo Test: specified files to single file: -i file1 -i file2 -file result_file1
 
 echo Test: all files in dir to single file: -i . -file result_file1
 ..\ResxToJson.Cli\bin\Debug\ResxToJson.exe -i . -file out_dir2file/res.js  -f
+
+
+echo Test: all files in dir to dir in i18next format: -i . -dir dir1 -format i18next
+..\ResxToJson.Cli\bin\Debug\ResxToJson.exe -dir out_dir2diri18next -f -format i18next

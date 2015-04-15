@@ -1,4 +1,5 @@
 @echo off
+
 echo Test: all files in dir to dir: -i . -dir dir1
 ..\ResxToJson.Cli\bin\Debug\ResxToJson.exe -dir out_dir2dir -f
 
@@ -14,4 +15,4 @@ echo Test: all files in dir to single file: -i . -file result_file1
 
 
 echo Test: all files in dir to dir in i18next format: -i . -dir dir1 -format i18next
-..\ResxToJson.Cli\bin\Debug\ResxToJson.exe -dir out_dir2diri18next -f -format i18next
+..\ResxToJson.Cli\bin\Debug\ResxToJson.exe -dir out_dir2diri18next -f -format i18next -fallback en

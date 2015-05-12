@@ -140,8 +140,8 @@ namespace Croc.DevTools.ResxToJson
 			var options = getOptions(args);
 			checkOptions(options);
 			
-			ConverterResult result = ResxToJsonConverter.Convert(options);
-			foreach (var item in result.Log)
+			ConverterLogger logger = ResxToJsonConverter.Convert(options);
+			foreach (var item in logger.Log)
 			{
 				ConsoleColor color;
 				switch (item.Severity)

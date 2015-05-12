@@ -13,38 +13,6 @@ using Newtonsoft.Json.Linq;
 
 namespace Croc.DevTools.ResxToJson
 {
-	public class ConverterResult
-	{
-		private readonly List<LogItem> m_log = new List<LogItem>();
-		public void AddMsg(Severity severity , string msg, params object[] args)
-		{
-			m_log.Add(new LogItem(severity, String.Format(msg, args)));
-		}
-
-		public List<LogItem> Log
-		{
-			get { return m_log; }
-		}
-	}
-
-	public class LogItem
-	{
-		public LogItem(Severity severity, string message)
-		{
-			Severity = severity;
-			Message = message;
-		}
-
-		public Severity Severity { get; private set; }
-		public String Message { get; private set; }
-	}
-	public enum Severity
-	{
-		Trace,
-		Info,
-		Warning,
-		Error
-	}
 
 	public class ResxToJsonConverter
 	{
@@ -60,18 +28,18 @@ namespace Croc.DevTools.ResxToJson
 			public IDictionary<string, JObject> LocalizedResources { get; private set; }
 		}
 
-		public static ConverterResult Convert(ResxToJsonConverterOptions options)
+		public static ConverterLogger Convert(ResxToJsonConverterOptions options)
 		{
-			var result = new ConverterResult();
+			var logger = new ConverterLogger();
 
 			IDictionary<string, ResourceBundle> bundles = null;
 			if (options.InputFiles.Count > 0)
 			{
-				bundles = ResxHelper.GetResources(options.InputFiles);
+				bundles = ResxHelper.GetResources(options.InputFiles, logger);
 			}
 			if (options.InputFolders.Count > 0)
 			{
-				var bundles2 = ResxHelper.GetResources(options.InputFolders, options.Recursive);
+				var bundles2 = ResxHelper.GetResources(options.InputFolders, options.Recursive, logger);
 				if (bundles == null )
 				{
 					bundles = bundles2;
@@ -88,10 +56,10 @@ namespace Croc.DevTools.ResxToJson
 
 			if (bundles == null || bundles.Count == 0)
 			{
-				result.AddMsg(Severity.Warning, "No resx files were found");
-				return result;
+				logger.AddMsg(Severity.Warning, "No resx files were found");
+				return logger;
 			}
-			result.AddMsg(Severity.Trace, "Found {0} resx bundles", bundles.Count);
+			logger.AddMsg(Severity.Trace, "Found {0} resx bundles", bundles.Count);
 			if (bundles.Count > 1 && !String.IsNullOrEmpty(options.OutputFile))
 			{
 				// join multiple resx resources into a single js-bundle
@@ -100,7 +68,7 @@ namespace Croc.DevTools.ResxToJson
 				{
 					bundleMerge.MergeWith(pair.Value);
 				}
-				result.AddMsg(Severity.Trace, "As 'outputFile' option was specified all bundles were merged into single bundle '{0}'", bundleMerge.BaseName);
+				logger.AddMsg(Severity.Trace, "As 'outputFile' option was specified all bundles were merged into single bundle '{0}'", bundleMerge.BaseName);
 				bundles = new Dictionary<string, ResourceBundle> {{bundleMerge.BaseName, bundleMerge}};
 			}
 
@@ -124,13 +92,14 @@ namespace Croc.DevTools.ResxToJson
 					baseDir = Environment.CurrentDirectory;
 				}
 
-				result.AddMsg(Severity.Trace, "Processing '{0}' bundle (contains {1} resx files)", bundle.BaseName, bundle.Cultures.Count);                
+				logger.AddMsg(Severity.Trace, "Processing '{0}' bundle (contains {1} resx files)", bundle.BaseName,
+					bundle.Cultures.Count);
                 string dirPath = options.OutputFormat == OutputFormat.i18next 
                     ? Path.Combine(baseDir, options.FallbackCulture)
                     : baseDir;
                 string outputPath = Path.Combine(dirPath, baseFileName);
 				string jsonText = stringifyJson(jsonResources.BaseResources, options);
-				writeOutput(outputPath, jsonText, options, result);
+				writeOutput(outputPath, jsonText, options, logger);
 
 				if (jsonResources.LocalizedResources.Count > 0)
 				{
@@ -139,12 +108,12 @@ namespace Croc.DevTools.ResxToJson
 						dirPath = Path.Combine(baseDir, pair.Key);
 						outputPath = Path.Combine(dirPath, baseFileName);
 						jsonText = stringifyJson(pair.Value, options);
-						writeOutput(outputPath, jsonText, options, result);
+						writeOutput(outputPath, jsonText, options, logger);
 					}
 				}
 			}
 
-			return result;
+			return logger;
 		}
 
         private static string GetOutputFileExtension(OutputFormat format)
@@ -158,7 +127,7 @@ namespace Croc.DevTools.ResxToJson
             }
 	    }
 
-	    private static void writeOutput(string outputPath, string jsonText, ResxToJsonConverterOptions options, ConverterResult result)
+	    private static void writeOutput(string outputPath, string jsonText, ResxToJsonConverterOptions options, ConverterLogger logger)
 		{
 			Directory.CreateDirectory(Path.GetDirectoryName(outputPath));
 			if (File.Exists(outputPath))
@@ -168,7 +137,7 @@ namespace Croc.DevTools.ResxToJson
 				{
 					if (options.Overwrite == OverwriteModes.Skip)
 					{
-						result.AddMsg(Severity.Error, "Cannot overwrite {0} file, skipping", outputPath);
+						logger.AddMsg(Severity.Error, "Cannot overwrite {0} file, skipping", outputPath);
 						return;
 					}
 					// remove read-only attribute
@@ -178,7 +147,7 @@ namespace Croc.DevTools.ResxToJson
 				// if existing file isn't readonly we just overwrite it
 			}
 			File.WriteAllText(outputPath, jsonText, Encoding.UTF8);
-			result.AddMsg(Severity.Info, "Created {0} file", outputPath);
+			logger.AddMsg(Severity.Info, "Created {0} file", outputPath);
 		}
 
 		static string stringifyJson(JObject json, ResxToJsonConverterOptions options)

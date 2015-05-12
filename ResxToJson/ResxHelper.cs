@@ -25,9 +25,7 @@ namespace Croc.DevTools.ResxToJson
 		/// Get resources from set of resx files. 
 		/// Resources are groupped in bundles for each set of resx-files with same base name (like messages.resx, messages.en.resx, message.ru.resx)
 		/// </summary>
-		/// <param name="inputFiles"></param>
-		/// <returns></returns>
-		public static IDictionary<string, ResourceBundle> GetResources(IList<string> inputFiles)
+		public static IDictionary<string, ResourceBundle> GetResources(IList<string> inputFiles, ConverterLogger logger)
 		{
 			var fileBundles = new Dictionary<string, ResourceFileBundle>();
 
@@ -36,7 +34,7 @@ namespace Croc.DevTools.ResxToJson
 				string fileName = Path.GetFileName(filePath);
 				string fileNameWithoutExt = Path.GetFileNameWithoutExtension(fileName);
 				bool isBaseFile;
-				int idx = fileNameWithoutExt.IndexOf(".");
+				int idx = fileNameWithoutExt.IndexOf(".", StringComparison.InvariantCulture);
 				// All files with the same base name form a bundle
 				string baseName = fileNameWithoutExt;
 				CultureInfo culture = null;
@@ -61,6 +59,11 @@ namespace Croc.DevTools.ResxToJson
 						isBaseFile = true;
 					}
 				}
+				if (String.IsNullOrEmpty(baseName))
+				{
+					throw new Exception("Could not extract baseName from the file name: '" + fileName + "'");
+				}
+
 				if (!fileBundles.TryGetValue(baseName, out bundle))
 				{
 					bundle = new ResourceFileBundle();
@@ -81,11 +84,17 @@ namespace Croc.DevTools.ResxToJson
 			// read values from resx files grouped in bundles
 			foreach (ResourceFileBundle fileBundle in fileBundles.Values)
 			{
-				var bundle = new ResourceBundle(fileBundle.BaseName);
-				if (String.IsNullOrEmpty(fileBundle.BaseFile))
+				if (String.IsNullOrEmpty(fileBundle.BaseFile) || String.IsNullOrEmpty(fileBundle.BaseName))
 				{
-					throw new Exception("Base resource file was not found:" + fileBundle.BaseName);
+					string locFiles = null;
+					if (fileBundle.CultureFiles.Count > 0)
+					{
+						locFiles = string.Join(", ", fileBundle.CultureFiles.Select(p => p.Value));
+					}
+					logger.AddMsg(Severity.Error, "Ignoring localized resources without base resx-file {0}", locFiles != null ? ": " + locFiles : "");
+					continue;
 				}
+				var bundle = new ResourceBundle(fileBundle.BaseName);
 				bundle.AddResources(null, getKeyValuePairsFromResxFile(fileBundle.BaseFile));
 				foreach (KeyValuePair<CultureInfo, string> pair in fileBundle.CultureFiles)
 				{
@@ -101,7 +110,7 @@ namespace Croc.DevTools.ResxToJson
 		/// Get resources from resx files found in specified folders.
 		/// Resources with groupped in bundles for each set of resx-files with same base name (like messages.resx, messages.en.resx, message.ru.resx)
 		/// </summary>
-		public static IDictionary<string, ResourceBundle> GetResources(ICollection<string> directories, bool recursive)
+		public static IDictionary<string, ResourceBundle> GetResources(ICollection<string> directories, bool recursive, ConverterLogger logger)
 		{
 			var files = new List<string>();
 			foreach (string directory in directories)
@@ -115,7 +124,7 @@ namespace Croc.DevTools.ResxToJson
 				files .AddRange(resourceFiles);
 			}
 
-			return GetResources(files);
+			return GetResources(files, logger);
 		}
 
 		private static Dictionary<string, string> getKeyValuePairsFromResxFile(string filePath)

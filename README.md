@@ -54,6 +54,14 @@ Absolute or relative path to a result js-file. If several inputs specified (via 
 then resources will be merged into the single js-file. 
 Cannot be used with `outputDir` option simultaneously.
 
+## outputFileFormat
+Required: no  
+Aliases: `-outputFileFormat`
+
+Generate file in specific format.
+Can be used tags:
+<language> - language of resx file.
+<resxFileName> - name of resx file.
 
 ## casing
 Value: `keep`, `camelCase`, `lowerCase`  

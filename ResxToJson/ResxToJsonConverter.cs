@@ -94,21 +94,49 @@ namespace Croc.DevTools.ResxToJson
 
                 logger.AddMsg(Severity.Trace, "Processing '{0}' bundle (contains {1} resx files)", bundle.BaseName,
                     bundle.Cultures.Count);
-                string dirPath = options.OutputFormat == OutputFormat.i18next
-                    ? Path.Combine(baseDir, options.FallbackCulture)
-                    : baseDir;
-                string outputPath = Path.Combine(dirPath, baseFileName);
-                string jsonText = stringifyJson(jsonResources.BaseResources, options);
-                writeOutput(outputPath, jsonText, options, logger);
 
-                if (jsonResources.LocalizedResources.Count > 0)
+                if (string.IsNullOrWhiteSpace(options.OutputFileFormat))
                 {
-                    foreach (KeyValuePair<string, JObject> pair in jsonResources.LocalizedResources)
+                    string dirPath = options.OutputFormat == OutputFormat.i18next
+                        ? Path.Combine(baseDir, options.FallbackCulture)
+                        : baseDir;
+                    string outputPath = Path.Combine(dirPath, baseFileName);
+                    string jsonText = stringifyJson(jsonResources.BaseResources, options);
+                    writeOutput(outputPath, jsonText, options, logger);
+
+                    if (jsonResources.LocalizedResources.Count > 0)
                     {
-                        outputPath = Path.Combine(baseDir, pair.Key + GetOutputFileExtension(options.OutputFormat));
-                        //outputPath = Path.Combine(dirPath, baseFileName);
-                        jsonText = stringifyJson(pair.Value, options);
-                        writeOutput(outputPath, jsonText, options, logger);
+                        foreach (KeyValuePair<string, JObject> pair in jsonResources.LocalizedResources)
+                        {
+                            dirPath = Path.Combine(baseDir, pair.Key);
+                            outputPath = Path.Combine(dirPath, baseFileName);
+                            jsonText = stringifyJson(pair.Value, options);
+                            writeOutput(outputPath, jsonText, options, logger);
+                        }
+                    }
+                }
+                else
+                {
+                    string language = options.FallbackCulture;
+                    string resxFileName = bundle.BaseName.ToLowerInvariant();
+
+                    string fileFormat = options.OutputFileFormat.Replace("<language>", language).Replace("<resxFileName>", resxFileName);
+                    string outputPath = Path.Combine(baseDir, fileFormat + GetOutputFileExtension(options.OutputFormat));
+                    string jsonText = stringifyJson(jsonResources.BaseResources, options);
+                    writeOutput(outputPath, jsonText, options, logger);
+
+                    if (jsonResources.LocalizedResources.Count > 0)
+                    {
+                        foreach (KeyValuePair<string, JObject> pair in jsonResources.LocalizedResources)
+                        {
+                            language = pair.Key;
+                            resxFileName = bundle.BaseName.ToLowerInvariant();
+
+                            fileFormat = options.OutputFileFormat.Replace("<language>", language).Replace("<resxFileName>", resxFileName);
+                            outputPath = Path.Combine(baseDir, fileFormat + GetOutputFileExtension(options.OutputFormat));
+                            jsonText = stringifyJson(pair.Value, options);
+                            writeOutput(outputPath, jsonText, options, logger);
+                        }
                     }
                 }
             }
@@ -127,7 +155,8 @@ namespace Croc.DevTools.ResxToJson
             }
         }
 
-        private static void writeOutput(string outputPath, string jsonText, ResxToJsonConverterOptions options, ConverterLogger logger)
+        private static void writeOutput(string outputPath, string jsonText, ResxToJsonConverterOptions options,
+            ConverterLogger logger)
         {
             Directory.CreateDirectory(Path.GetDirectoryName(outputPath));
             if (File.Exists(outputPath))

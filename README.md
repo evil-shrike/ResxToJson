@@ -60,10 +60,9 @@ Aliases: `-outputFileFormat`
 
 Generate file in specific format.
 Can be used tags:
-```
-<language> - language of resx file.
-<resxFileName> - name of resx file.
-```
+* `<language>` - language of resx file.
+* `<resxFileName>` - name of resx file.
+
 ## casing
 Value: `keep`, `camelCase`, `lowerCase`  
 Default value: `keep`  

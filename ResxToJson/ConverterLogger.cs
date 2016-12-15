@@ -7,7 +7,7 @@ namespace Croc.DevTools.ResxToJson
 	{
 		private readonly List<LogItem> m_log = new List<LogItem>();
 
-		public void AddMsg(Severity severity , string msg, params object[] args)
+		public void AddMsg(Severity severity, string msg, params object[] args)
 		{
 			m_log.Add(new LogItem(severity, String.Format(msg, args)));
 		}

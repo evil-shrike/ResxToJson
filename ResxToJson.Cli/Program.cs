@@ -10,31 +10,31 @@ namespace Croc.DevTools.ResxToJson
 {
 	class Program
 	{
-	    enum ExitCode
-	    {
-	        InputArgumentMissing = -1,
-            InvalidOutputArgument = -2,
-            CaseArgumentMissing = -3,
-            InvalidInputPath = -4,
-            OutputFormatArgumentMissing = -5,
-	        FallbackArgumentMissing = -6
-	    }
+		enum ExitCode
+		{
+			InputArgumentMissing = -1,
+			InvalidOutputArgument = -2,
+			CaseArgumentMissing = -3,
+			InvalidInputPath = -4,
+			OutputFormatArgumentMissing = -5,
+			FallbackArgumentMissing = -6
+		}
 
-	    static void CrashAndBurn(ExitCode code, string crashMessage, params object[] args)
-	    {
-            // Preserve the foreground color
-            var c = Console.ForegroundColor;
+		static void CrashAndBurn(ExitCode code, string crashMessage, params object[] args)
+		{
+			// Preserve the foreground color
+			var c = Console.ForegroundColor;
 
-            // Write out our error message in bright red text
-            Console.ForegroundColor = ConsoleColor.Red;
-            Console.WriteLine("ERROR: " + crashMessage, args);
+			// Write out our error message in bright red text
+			Console.ForegroundColor = ConsoleColor.Red;
+			Console.WriteLine("ERROR: " + crashMessage, args);
 
-            // Restore the foreground color
-            Console.ForegroundColor = c;
+			// Restore the foreground color
+			Console.ForegroundColor = c;
 
-            // Die!
-            Environment.Exit((int)code);
-        }
+			// Die!
+			Environment.Exit((int)code);
+		}
 
 		static ResxToJsonConverterOptions getOptions(string[] args)
 		{
@@ -46,7 +46,7 @@ namespace Croc.DevTools.ResxToJson
 				{
 					if (args.Length == i + 1)
 					{
-                        CrashAndBurn(ExitCode.InputArgumentMissing, "Value for option 'input' is missing");
+						CrashAndBurn(ExitCode.InputArgumentMissing, "Value for option 'input' is missing");
 					}
 					options.Inputs.Add(args[i + 1]);
 					i++;
@@ -57,7 +57,7 @@ namespace Croc.DevTools.ResxToJson
 				{
 					if (args.Length == i + 1)
 					{
-					    CrashAndBurn(ExitCode.InvalidOutputArgument, "Value for option 'outputDir' is missing");
+						CrashAndBurn(ExitCode.InvalidOutputArgument, "Value for option 'outputDir' is missing");
 					}
 					options.OutputFolder = args[i + 1];
 					i++;
@@ -68,46 +68,46 @@ namespace Croc.DevTools.ResxToJson
 				{
 					if (args.Length == i + 1)
 					{
-                        CrashAndBurn(ExitCode.InvalidOutputArgument, "Value for option 'outputFile' is missing");
+						CrashAndBurn(ExitCode.InvalidOutputArgument, "Value for option 'outputFile' is missing");
 						Console.WriteLine("ERROR: Value for option 'outputFile' is missing");
 						Environment.Exit(-2);
 					}
 					options.OutputFile = args[i + 1];
 					i++;
 					continue;
-                }
+				}
 
-                if (key == "-format" || key == "-outputFormat")
-                {
-                    if (args.Length == i + 1)
-                    {
-                        CrashAndBurn(ExitCode.OutputFormatArgumentMissing, "Value for option 'outputFormat' is missing");
-                    }
+				if (key == "-format" || key == "-outputFormat")
+				{
+					if (args.Length == i + 1)
+					{
+						CrashAndBurn(ExitCode.OutputFormatArgumentMissing, "Value for option 'outputFormat' is missing");
+					}
 					OutputFormat format;
 					if (Enum.TryParse(args[i + 1], true, out format))
 					{
 						options.OutputFormat = format;
 					}
-                    i++;
-                    continue;
-                }
+					i++;
+					continue;
+				}
 
-                if (key == "-fallback" || key == "-fallbackCulture")
-                {
-                    if (args.Length == i + 1)
-                    {
-                        CrashAndBurn(ExitCode.FallbackArgumentMissing, "Value for option 'fallbackCulture' is missing");
-                    }
-                    options.FallbackCulture = args[i + 1];
-                    i++;
-                    continue;
-                }
+				if (key == "-fallback" || key == "-fallbackCulture")
+				{
+					if (args.Length == i + 1)
+					{
+						CrashAndBurn(ExitCode.FallbackArgumentMissing, "Value for option 'fallbackCulture' is missing");
+					}
+					options.FallbackCulture = args[i + 1];
+					i++;
+					continue;
+				}
 
 				if (key == "-c" || key == "-case")
 				{
 					if (args.Length == i + 1)
 					{
-                        CrashAndBurn(ExitCode.CaseArgumentMissing, "Value for option 'case' is missing");
+						CrashAndBurn(ExitCode.CaseArgumentMissing, "Value for option 'case' is missing");
 					}
 					JsonCasing casing;
 					if (Enum.TryParse(args[i + 1], true, out casing))
@@ -125,6 +125,18 @@ namespace Croc.DevTools.ResxToJson
 				if (key == "-r" || key == "-recursively")
 				{
 					options.Recursive = true;
+					i++;
+					continue;
+				}
+
+				if (key == "-outputFileFormat")
+				{
+					if (args.Length == i + 1)
+					{
+						CrashAndBurn(ExitCode.CaseArgumentMissing, "Value for option 'outputFileFormat' is missing");
+					}
+					options.OutputFileFormat = args[i + 1];
+					i++;
 					continue;
 				}
 			}
@@ -139,7 +151,7 @@ namespace Croc.DevTools.ResxToJson
 			}
 			var options = getOptions(args);
 			checkOptions(options);
-			
+
 			ConverterLogger logger = ResxToJsonConverter.Convert(options);
 			foreach (var item in logger.Log)
 			{
@@ -166,7 +178,7 @@ namespace Croc.DevTools.ResxToJson
 				Console.WriteLine(item.Message);
 				Console.ForegroundColor = backupColor;
 			}
-			
+
 		}
 
 		static void checkOptions(ResxToJsonConverterOptions options)
@@ -191,7 +203,7 @@ namespace Croc.DevTools.ResxToJson
 					}
 					else
 					{
-                        CrashAndBurn(ExitCode.InvalidInputPath, "input path '{0}' doesn't relate to a file or a directory", path);
+						CrashAndBurn(ExitCode.InvalidInputPath, "input path '{0}' doesn't relate to a file or a directory", path);
 					}
 				}
 			}
@@ -219,6 +231,10 @@ USAGE:
   -outputFormat or -format  - output format selection:
                                 RequireJs (default) -> output will be AMD modules suitable for use with requireJs i18n
                                 i18next             -> output will be JSON dictionary files that can be used with i18next
+  -outputFileFormat         - generate file in specific format.
+                                Can be used tags:
+                                <language> - language of resx file.
+                                <resxFileName> - name of resx file.
   -fallback                 - When using i18next the 'root' translations get used as the fallback culture, which go in 
                               their own subdirectory (essentially forming their own culture). By default this will be 
                               'dev', however you should probably specify something more appropriate like 'en' or 'fr'

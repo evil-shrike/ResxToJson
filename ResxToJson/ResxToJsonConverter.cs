@@ -13,7 +13,6 @@ using Newtonsoft.Json.Linq;
 
 namespace Croc.DevTools.ResxToJson
 {
-
 	public class ResxToJsonConverter
 	{
 		class JsonResources
@@ -40,7 +39,7 @@ namespace Croc.DevTools.ResxToJson
 			if (options.InputFolders.Count > 0)
 			{
 				var bundles2 = ResxHelper.GetResources(options.InputFolders, options.Recursive, logger);
-				if (bundles == null )
+				if (bundles == null)
 				{
 					bundles = bundles2;
 				}
@@ -68,8 +67,9 @@ namespace Croc.DevTools.ResxToJson
 				{
 					bundleMerge.MergeWith(pair.Value);
 				}
-				logger.AddMsg(Severity.Trace, "As 'outputFile' option was specified all bundles were merged into single bundle '{0}'", bundleMerge.BaseName);
-				bundles = new Dictionary<string, ResourceBundle> {{bundleMerge.BaseName, bundleMerge}};
+				logger.AddMsg(Severity.Trace,
+					"As 'outputFile' option was specified all bundles were merged into single bundle '{0}'", bundleMerge.BaseName);
+				bundles = new Dictionary<string, ResourceBundle> { { bundleMerge.BaseName, bundleMerge } };
 			}
 
 			foreach (ResourceBundle bundle in bundles.Values)
@@ -94,21 +94,50 @@ namespace Croc.DevTools.ResxToJson
 
 				logger.AddMsg(Severity.Trace, "Processing '{0}' bundle (contains {1} resx files)", bundle.BaseName,
 					bundle.Cultures.Count);
-                string dirPath = options.OutputFormat == OutputFormat.i18next 
-                    ? Path.Combine(baseDir, options.FallbackCulture)
-                    : baseDir;
-                string outputPath = Path.Combine(dirPath, baseFileName);
-				string jsonText = stringifyJson(jsonResources.BaseResources, options);
-				writeOutput(outputPath, jsonText, options, logger);
 
-				if (jsonResources.LocalizedResources.Count > 0)
+				if (string.IsNullOrWhiteSpace(options.OutputFileFormat))
 				{
-					foreach (KeyValuePair<string, JObject> pair in jsonResources.LocalizedResources)
+					string dirPath = options.OutputFormat == OutputFormat.i18next
+						? Path.Combine(baseDir, options.FallbackCulture)
+						: baseDir;
+					string outputPath = Path.Combine(dirPath, baseFileName);
+					string jsonText = stringifyJson(jsonResources.BaseResources, options);
+					writeOutput(outputPath, jsonText, options, logger);
+
+					if (jsonResources.LocalizedResources.Count > 0)
 					{
-						dirPath = Path.Combine(baseDir, pair.Key);
-						outputPath = Path.Combine(dirPath, baseFileName);
-						jsonText = stringifyJson(pair.Value, options);
-						writeOutput(outputPath, jsonText, options, logger);
+						foreach (KeyValuePair<string, JObject> pair in jsonResources.LocalizedResources)
+						{
+							dirPath = Path.Combine(baseDir, pair.Key);
+							outputPath = Path.Combine(dirPath, baseFileName);
+							jsonText = stringifyJson(pair.Value, options);
+							writeOutput(outputPath, jsonText, options, logger);
+						}
+					}
+				}
+				else
+				{
+					string language = options.FallbackCulture;
+					string resxFileName = bundle.BaseName.ToLowerInvariant();
+
+					string fileFormat = options.OutputFileFormat.Replace("<language>", language)
+						.Replace("<resxFileName>", resxFileName);
+					string outputPath = Path.Combine(baseDir, fileFormat + GetOutputFileExtension(options.OutputFormat));
+					string jsonText = stringifyJson(jsonResources.BaseResources, options);
+					writeOutput(outputPath, jsonText, options, logger);
+
+					if (jsonResources.LocalizedResources.Count > 0)
+					{
+						foreach (KeyValuePair<string, JObject> pair in jsonResources.LocalizedResources)
+						{
+							language = pair.Key;
+							resxFileName = bundle.BaseName.ToLowerInvariant();
+
+							fileFormat = options.OutputFileFormat.Replace("<language>", language).Replace("<resxFileName>", resxFileName);
+							outputPath = Path.Combine(baseDir, fileFormat + GetOutputFileExtension(options.OutputFormat));
+							jsonText = stringifyJson(pair.Value, options);
+							writeOutput(outputPath, jsonText, options, logger);
+						}
 					}
 				}
 			}
@@ -116,18 +145,19 @@ namespace Croc.DevTools.ResxToJson
 			return logger;
 		}
 
-        private static string GetOutputFileExtension(OutputFormat format)
-	    {
-            switch (format)
-            {
-                case OutputFormat.RequireJs:
-                    return ".js";
-                default:
-                    return ".json";
-            }
-	    }
+		private static string GetOutputFileExtension(OutputFormat format)
+		{
+			switch (format)
+			{
+				case OutputFormat.RequireJs:
+					return ".js";
+				default:
+					return ".json";
+			}
+		}
 
-	    private static void writeOutput(string outputPath, string jsonText, ResxToJsonConverterOptions options, ConverterLogger logger)
+		private static void writeOutput(string outputPath, string jsonText, ResxToJsonConverterOptions options,
+			ConverterLogger logger)
 		{
 			Directory.CreateDirectory(Path.GetDirectoryName(outputPath));
 			if (File.Exists(outputPath))
@@ -153,13 +183,13 @@ namespace Croc.DevTools.ResxToJson
 		static string stringifyJson(JObject json, ResxToJsonConverterOptions options)
 		{
 			string text = json.ToString(Formatting.Indented);
-		    switch (options.OutputFormat)
-		    {
-		        case OutputFormat.RequireJs:
-                    return "define(" + text + ");";
-                default:
-		            return text;
-		    }
+			switch (options.OutputFormat)
+			{
+				case OutputFormat.RequireJs:
+					return "define(" + text + ");";
+				default:
+					return text;
+			}
 		}
 
 		private static JsonResources generateJsonResources(ResourceBundle bundle, ResxToJsonConverterOptions options)
@@ -168,29 +198,29 @@ namespace Croc.DevTools.ResxToJson
 			// root resoruce
 			IDictionary<string, string> baseValues = bundle.GetValues(null);
 			JObject jBaseValues = convertValues(baseValues, options);
-		    switch (options.OutputFormat)
-		    {
-		        case OutputFormat.RequireJs:
-                    // When dealing with require.js i18n the root resource contains a "root" subnode that contains all 
-                    // of the base translations and then a bunch of nodes like the following for each supported culture:
-                    //   "en-US" : true
-                    //   "fr" : true
-                    //   ...
-                    var jRoot = new JObject();
-                    jRoot["root"] = jBaseValues;
-                    foreach (CultureInfo culture in bundle.Cultures)
-                    {
-                        if (culture.Equals(CultureInfo.InvariantCulture))
-                            continue;
-                        jRoot[culture.Name] = true;
-                    }
-                    result.BaseResources = jRoot;
-		            break;
-                default:
-                    // In the simplest case our output format is plain vanilla json (just a kvp dictionary)
-		            result.BaseResources = jBaseValues;
-		            break;
-		    }
+			switch (options.OutputFormat)
+			{
+				case OutputFormat.RequireJs:
+					// When dealing with require.js i18n the root resource contains a "root" subnode that contains all 
+					// of the base translations and then a bunch of nodes like the following for each supported culture:
+					//   "en-US" : true
+					//   "fr" : true
+					//   ...
+					var jRoot = new JObject();
+					jRoot["root"] = jBaseValues;
+					foreach (CultureInfo culture in bundle.Cultures)
+					{
+						if (culture.Equals(CultureInfo.InvariantCulture))
+							continue;
+						jRoot[culture.Name] = true;
+					}
+					result.BaseResources = jRoot;
+					break;
+				default:
+					// In the simplest case our output format is plain vanilla json (just a kvp dictionary)
+					result.BaseResources = jBaseValues;
+					break;
+			}
 
 			// culture specific resources
 			foreach (CultureInfo culture in bundle.Cultures)

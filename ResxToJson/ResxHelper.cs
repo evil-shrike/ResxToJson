@@ -121,7 +121,7 @@ namespace Croc.DevTools.ResxToJson
 				}
 				string[] resourceFiles = Directory.GetFiles(directory, "*.resx",
 					recursive ? SearchOption.AllDirectories : SearchOption.TopDirectoryOnly);
-				files .AddRange(resourceFiles);
+				files.AddRange(resourceFiles);
 			}
 
 			return GetResources(files, logger);

@@ -8,219 +8,219 @@ using System.IO;
 
 namespace Croc.DevTools.ResxToJson
 {
-    class Program
-    {
-        enum ExitCode
-        {
-            InputArgumentMissing = -1,
-            InvalidOutputArgument = -2,
-            CaseArgumentMissing = -3,
-            InvalidInputPath = -4,
-            OutputFormatArgumentMissing = -5,
-            FallbackArgumentMissing = -6
-        }
+	class Program
+	{
+		enum ExitCode
+		{
+			InputArgumentMissing = -1,
+			InvalidOutputArgument = -2,
+			CaseArgumentMissing = -3,
+			InvalidInputPath = -4,
+			OutputFormatArgumentMissing = -5,
+			FallbackArgumentMissing = -6
+		}
 
-        static void CrashAndBurn(ExitCode code, string crashMessage, params object[] args)
-        {
-            // Preserve the foreground color
-            var c = Console.ForegroundColor;
+		static void CrashAndBurn(ExitCode code, string crashMessage, params object[] args)
+		{
+			// Preserve the foreground color
+			var c = Console.ForegroundColor;
 
-            // Write out our error message in bright red text
-            Console.ForegroundColor = ConsoleColor.Red;
-            Console.WriteLine("ERROR: " + crashMessage, args);
+			// Write out our error message in bright red text
+			Console.ForegroundColor = ConsoleColor.Red;
+			Console.WriteLine("ERROR: " + crashMessage, args);
 
-            // Restore the foreground color
-            Console.ForegroundColor = c;
+			// Restore the foreground color
+			Console.ForegroundColor = c;
 
-            // Die!
-            Environment.Exit((int)code);
-        }
+			// Die!
+			Environment.Exit((int)code);
+		}
 
-        static ResxToJsonConverterOptions getOptions(string[] args)
-        {
-            var options = new ResxToJsonConverterOptions();
-            for (int i = 0; i < args.Length; i++)
-            {
-                string key = args[i];
-                if (key == "-i" || key == "-input")
-                {
-                    if (args.Length == i + 1)
-                    {
-                        CrashAndBurn(ExitCode.InputArgumentMissing, "Value for option 'input' is missing");
-                    }
-                    options.Inputs.Add(args[i + 1]);
-                    i++;
-                    continue;
-                }
+		static ResxToJsonConverterOptions getOptions(string[] args)
+		{
+			var options = new ResxToJsonConverterOptions();
+			for (int i = 0; i < args.Length; i++)
+			{
+				string key = args[i];
+				if (key == "-i" || key == "-input")
+				{
+					if (args.Length == i + 1)
+					{
+						CrashAndBurn(ExitCode.InputArgumentMissing, "Value for option 'input' is missing");
+					}
+					options.Inputs.Add(args[i + 1]);
+					i++;
+					continue;
+				}
 
-                if (key == "-dir" || key == "-outputDir")
-                {
-                    if (args.Length == i + 1)
-                    {
-                        CrashAndBurn(ExitCode.InvalidOutputArgument, "Value for option 'outputDir' is missing");
-                    }
-                    options.OutputFolder = args[i + 1];
-                    i++;
-                    continue;
-                }
+				if (key == "-dir" || key == "-outputDir")
+				{
+					if (args.Length == i + 1)
+					{
+						CrashAndBurn(ExitCode.InvalidOutputArgument, "Value for option 'outputDir' is missing");
+					}
+					options.OutputFolder = args[i + 1];
+					i++;
+					continue;
+				}
 
-                if (key == "-file" || key == "-outputFile")
-                {
-                    if (args.Length == i + 1)
-                    {
-                        CrashAndBurn(ExitCode.InvalidOutputArgument, "Value for option 'outputFile' is missing");
-                        Console.WriteLine("ERROR: Value for option 'outputFile' is missing");
-                        Environment.Exit(-2);
-                    }
-                    options.OutputFile = args[i + 1];
-                    i++;
-                    continue;
-                }
+				if (key == "-file" || key == "-outputFile")
+				{
+					if (args.Length == i + 1)
+					{
+						CrashAndBurn(ExitCode.InvalidOutputArgument, "Value for option 'outputFile' is missing");
+						Console.WriteLine("ERROR: Value for option 'outputFile' is missing");
+						Environment.Exit(-2);
+					}
+					options.OutputFile = args[i + 1];
+					i++;
+					continue;
+				}
 
-                if (key == "-format" || key == "-outputFormat")
-                {
-                    if (args.Length == i + 1)
-                    {
-                        CrashAndBurn(ExitCode.OutputFormatArgumentMissing, "Value for option 'outputFormat' is missing");
-                    }
-                    OutputFormat format;
-                    if (Enum.TryParse(args[i + 1], true, out format))
-                    {
-                        options.OutputFormat = format;
-                    }
-                    i++;
-                    continue;
-                }
+				if (key == "-format" || key == "-outputFormat")
+				{
+					if (args.Length == i + 1)
+					{
+						CrashAndBurn(ExitCode.OutputFormatArgumentMissing, "Value for option 'outputFormat' is missing");
+					}
+					OutputFormat format;
+					if (Enum.TryParse(args[i + 1], true, out format))
+					{
+						options.OutputFormat = format;
+					}
+					i++;
+					continue;
+				}
 
-                if (key == "-fallback" || key == "-fallbackCulture")
-                {
-                    if (args.Length == i + 1)
-                    {
-                        CrashAndBurn(ExitCode.FallbackArgumentMissing, "Value for option 'fallbackCulture' is missing");
-                    }
-                    options.FallbackCulture = args[i + 1];
-                    i++;
-                    continue;
-                }
+				if (key == "-fallback" || key == "-fallbackCulture")
+				{
+					if (args.Length == i + 1)
+					{
+						CrashAndBurn(ExitCode.FallbackArgumentMissing, "Value for option 'fallbackCulture' is missing");
+					}
+					options.FallbackCulture = args[i + 1];
+					i++;
+					continue;
+				}
 
-                if (key == "-c" || key == "-case")
-                {
-                    if (args.Length == i + 1)
-                    {
-                        CrashAndBurn(ExitCode.CaseArgumentMissing, "Value for option 'case' is missing");
-                    }
-                    JsonCasing casing;
-                    if (Enum.TryParse(args[i + 1], true, out casing))
-                    {
-                        options.Casing = casing;
-                    }
-                    i++;
-                    continue;
-                }
-                if (key == "-f" || key == "-force")
-                {
-                    options.Overwrite = OverwriteModes.Force;
-                    continue;
-                }
-                if (key == "-r" || key == "-recursively")
-                {
-                    options.Recursive = true;
-                    i++;
-                    continue;
-                }
+				if (key == "-c" || key == "-case")
+				{
+					if (args.Length == i + 1)
+					{
+						CrashAndBurn(ExitCode.CaseArgumentMissing, "Value for option 'case' is missing");
+					}
+					JsonCasing casing;
+					if (Enum.TryParse(args[i + 1], true, out casing))
+					{
+						options.Casing = casing;
+					}
+					i++;
+					continue;
+				}
+				if (key == "-f" || key == "-force")
+				{
+					options.Overwrite = OverwriteModes.Force;
+					continue;
+				}
+				if (key == "-r" || key == "-recursively")
+				{
+					options.Recursive = true;
+					i++;
+					continue;
+				}
 
-                if (key == "-outputFileFormat")
-                {
-                    if (args.Length == i + 1)
-                    {
-                        CrashAndBurn(ExitCode.CaseArgumentMissing, "Value for option 'outputFileFormat' is missing");
-                    }
-                    options.OutputFileFormat = args[i + 1];
-                    i++;
-                    continue;
-                }
-            }
-            return options;
-        }
+				if (key == "-outputFileFormat")
+				{
+					if (args.Length == i + 1)
+					{
+						CrashAndBurn(ExitCode.CaseArgumentMissing, "Value for option 'outputFileFormat' is missing");
+					}
+					options.OutputFileFormat = args[i + 1];
+					i++;
+					continue;
+				}
+			}
+			return options;
+		}
 
-        static void Main(string[] args)
-        {
-            if (args.Length == 0 || args.Length == 1 && (args[0] == "-help" || args[0] == "-?"))
-            {
-                printHelp();
-            }
-            var options = getOptions(args);
-            checkOptions(options);
+		static void Main(string[] args)
+		{
+			if (args.Length == 0 || args.Length == 1 && (args[0] == "-help" || args[0] == "-?"))
+			{
+				printHelp();
+			}
+			var options = getOptions(args);
+			checkOptions(options);
 
-            ConverterLogger logger = ResxToJsonConverter.Convert(options);
-            foreach (var item in logger.Log)
-            {
-                ConsoleColor color;
-                switch (item.Severity)
-                {
-                    case Severity.Trace:
-                        color = ConsoleColor.DarkGray;
-                        break;
-                    case Severity.Info:
-                        color = ConsoleColor.White;
-                        break;
-                    case Severity.Warning:
-                        color = ConsoleColor.Yellow;
-                        break;
-                    case Severity.Error:
-                        color = ConsoleColor.DarkRed;
-                        break;
-                    default:
-                        throw new ArgumentOutOfRangeException();
-                }
-                var backupColor = Console.ForegroundColor;
-                Console.ForegroundColor = color;
-                Console.WriteLine(item.Message);
-                Console.ForegroundColor = backupColor;
-            }
+			ConverterLogger logger = ResxToJsonConverter.Convert(options);
+			foreach (var item in logger.Log)
+			{
+				ConsoleColor color;
+				switch (item.Severity)
+				{
+					case Severity.Trace:
+						color = ConsoleColor.DarkGray;
+						break;
+					case Severity.Info:
+						color = ConsoleColor.White;
+						break;
+					case Severity.Warning:
+						color = ConsoleColor.Yellow;
+						break;
+					case Severity.Error:
+						color = ConsoleColor.DarkRed;
+						break;
+					default:
+						throw new ArgumentOutOfRangeException();
+				}
+				var backupColor = Console.ForegroundColor;
+				Console.ForegroundColor = color;
+				Console.WriteLine(item.Message);
+				Console.ForegroundColor = backupColor;
+			}
 
-        }
+		}
 
-        static void checkOptions(ResxToJsonConverterOptions options)
-        {
-            if (options.Inputs.Count > 0)
-            {
-                foreach (string input in options.Inputs)
-                {
-                    string path = input;
-                    if (!Path.IsPathRooted(input))
-                    {
-                        path = Path.Combine(Environment.CurrentDirectory, input);
-                    }
+		static void checkOptions(ResxToJsonConverterOptions options)
+		{
+			if (options.Inputs.Count > 0)
+			{
+				foreach (string input in options.Inputs)
+				{
+					string path = input;
+					if (!Path.IsPathRooted(input))
+					{
+						path = Path.Combine(Environment.CurrentDirectory, input);
+					}
 
-                    if (Directory.Exists(path))
-                    {
-                        options.InputFolders.Add(path);
-                    }
-                    else if (File.Exists(path))
-                    {
-                        options.InputFiles.Add(path);
-                    }
-                    else
-                    {
-                        CrashAndBurn(ExitCode.InvalidInputPath, "input path '{0}' doesn't relate to a file or a directory", path);
-                    }
-                }
-            }
-            else
-            {
-                options.InputFolders.Add(Environment.CurrentDirectory);
-            }
+					if (Directory.Exists(path))
+					{
+						options.InputFolders.Add(path);
+					}
+					else if (File.Exists(path))
+					{
+						options.InputFiles.Add(path);
+					}
+					else
+					{
+						CrashAndBurn(ExitCode.InvalidInputPath, "input path '{0}' doesn't relate to a file or a directory", path);
+					}
+				}
+			}
+			else
+			{
+				options.InputFolders.Add(Environment.CurrentDirectory);
+			}
 
-            if (String.IsNullOrEmpty(options.OutputFolder) && String.IsNullOrEmpty(options.OutputFile))
-            {
-                options.OutputFolder = Environment.CurrentDirectory;
-            }
-        }
+			if (String.IsNullOrEmpty(options.OutputFolder) && String.IsNullOrEmpty(options.OutputFile))
+			{
+				options.OutputFolder = Environment.CurrentDirectory;
+			}
+		}
 
-        static void printHelp()
-        {
-            Console.WriteLine(
+		static void printHelp()
+		{
+			Console.WriteLine(
 @"ResxToJson (c) CROC Inc. 2014
 A resx-resources to json converter for using with RequireJS i18n plugin (see https://github.com/requirejs/i18n).
 USAGE:
@@ -256,7 +256,7 @@ Process files Messages.resx, Messages.nl.resx, Messages.de.resx and create js-fi
 ResxToJson.exe -i .\Server -dir c:\src\MyPrj\content\locales -format i18next -fallback en
 Processes all *.resx in folder 'Server' and creates json dictionary files in the 'c:\src\MyPrj\content\locales' folder (one for each resx file)
 ");
-            Environment.Exit(0);
-        }
-    }
+			Environment.Exit(0);
+		}
+	}
 }

@@ -62,6 +62,7 @@ Generate file in specific format.
 Can be used tags:
 * `<language>` - language of resx file.
 * `<resxFileName>` - name of resx file.
+Cannot be used with outputFile option simultaneously.
 
 ## casing
 Value: `keep`, `camelCase`, `lowerCase`  
